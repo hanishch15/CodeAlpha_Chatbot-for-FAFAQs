@@ -1,17 +1,17 @@
 from flask import Flask, jsonify, request
+import re
 
 app = Flask(__name__)
 
 FAQS = [
-    {"question": "what is python", "answer": "Python is a high-level programming language known for its readability and versatility."},
-    {"question": "how do i install libraries", "answer": "You can install libraries using pip. For example, run 'pip install flask'."},
-    {"question": "what is flask", "answer": "Flask is a lightweight web application framework in Python."},
-    {"question": "what is github", "answer": "GitHub is a cloud-based service that helps developers store and manage their code."},
-    {"question": "how do i deploy on vercel", "answer": "You can deploy it easily by adding an api folder and putting your script inside."},
-    {"question": "what is an ai chatbot", "answer": "An AI chatbot is a software application used to conduct automated text conversations."}
+    {"keywords": ["python"], "answer": "Python is a high-level programming language known for its readability and versatility."},
+    {"keywords": ["install", "libraries", "library", "pip"], "answer": "You can install libraries using pip. For example, run 'pip install flask' in your terminal."},
+    {"keywords": ["flask"], "answer": "Flask is a lightweight web application framework in Python, perfect for quick setups."},
+    {"keywords": ["github", "git"], "answer": "GitHub is a cloud-based service that helps developers store, manage, and track changes to their code."},
+    {"keywords": ["deploy", "vercel"], "answer": "You can deploy it easily by adding a vercel.json configuration file to map your application routes."},
+    {"keywords": ["chatbot", "ai"], "answer": "An AI chatbot is a software application used to conduct automated text conversations."}
 ]
 
-# Simple inline HTML interface to completely eliminate template folder paths
 HTML_INTERFACE = """
 <!DOCTYPE html>
 <html>
@@ -84,18 +84,23 @@ def catch_all(path):
         if not user_message:
             return jsonify({"reply": "Please ask something!"})
         
-        cleaned_input = user_message.lower().strip()
-        best_reply = None
+        # Clean text and split into individual words
+        cleaned_words = re.sub(r'[^a-z0-9\s]', '', user_message.lower().strip()).split()
         
+        best_reply = None
+        max_matches = 0
+        
+        # Scan through keywords to find the best contextual match
         for faq in FAQS:
-            if faq["question"] in cleaned_input or cleaned_input in faq["question"]:
+            matches = sum(1 for word in cleaned_words if word in faq["keywords"])
+            if matches > max_matches:
+                max_matches = matches
                 best_reply = faq["answer"]
-                break
                 
-        if not best_reply:
-            best_reply = "I couldn't find a close match for that question. Try rephrasing!"
+        if max_matches == 0 or not best_reply:
+            best_reply = "I couldn't find a matching question in my system. Could you try rephrasing with words like Python, Flask, Vercel, or GitHub?"
             
         return jsonify({"reply": best_reply})
         
     return HTML_INTERFACE
-  
+    
